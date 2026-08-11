@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from harness.models import Action, RiskDecision, RiskLevel
+from harness.models import Action, ActionType, RiskDecision, RiskLevel
 
 
 class PathFenceError(ValueError):
@@ -19,6 +19,12 @@ class PathFence:
         ).resolve(strict=False)
 
     def check_action(self, action: Action) -> RiskDecision:
+        if action.type not in {ActionType.READ_FILE, ActionType.WRITE_FILE}:
+            return RiskDecision(
+                level=RiskLevel.DENY,
+                reasons=["unsupported action type for path fence"],
+            )
+
         candidate = action.payload.get("path")
         if not isinstance(candidate, (Path, str)):
             raise PathFenceError("action payload must contain a path")
@@ -29,7 +35,7 @@ class PathFence:
         except ValueError:
             return RiskDecision(level=RiskLevel.DENY, reasons=["path is outside workspace"])
 
-        if resolved.name in self._SENSITIVE_NAMES:
+        if resolved.name.casefold() in self._SENSITIVE_NAMES:
             return RiskDecision(
                 level=RiskLevel.DENY,
                 reasons=["path is a sensitive credential file"],
