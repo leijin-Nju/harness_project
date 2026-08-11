@@ -5,7 +5,7 @@ from harness.models import Action, ActionType, RiskDecision, RiskLevel
 
 
 class RiskClassifier:
-    _SHELL_OPERATOR_PATTERN = re.compile(r"&&|\|\||[;|]")
+    _SHELL_OPERATOR_PATTERN = re.compile(r"[;&|\r\n]")
     _DENY_PATTERNS = (
         "drop database",
         "truncate table",

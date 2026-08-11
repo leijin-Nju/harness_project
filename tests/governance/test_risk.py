@@ -27,6 +27,14 @@ def test_reviews_composite_commands_with_high_risk_segments():
     assert classify("ruff check src; curl https://example.com").level == RiskLevel.REVIEW
 
 
+def test_reviews_single_ampersand_composite_commands():
+    assert classify("echo ok & git push origin main").level == RiskLevel.REVIEW
+
+
+def test_reviews_newline_composite_commands():
+    assert classify("echo ok\ngit push origin main").level == RiskLevel.REVIEW
+
+
 def test_denies_destructive_or_secret_commands():
     assert classify("rm -rf /").level == RiskLevel.DENY
     assert classify("cat .env").level == RiskLevel.DENY
