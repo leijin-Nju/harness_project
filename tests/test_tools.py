@@ -1,4 +1,4 @@
-from harness.models import Action, ActionType
+from harness.models import Action, ActionType, ToolResult
 from harness.tools import ToolExecutor
 
 
@@ -30,10 +30,65 @@ def test_run_command_timeout(tmp_path):
     executor = ToolExecutor(tmp_path, default_timeout_seconds=0.1)
     action = Action(
         type=ActionType.RUN_COMMAND,
-        payload={"command": "python -c \"import time; time.sleep(2)\""},
+        payload={"command": "python -c \"__import__('time').sleep(2)\""},
     )
 
     result = executor.execute(action)
 
     assert result.ok is False
     assert result.timed_out is True
+
+
+def test_denies_sensitive_file_read_without_executing(tmp_path):
+    (tmp_path / ".env").write_text("SECRET=value")
+    executor = ToolExecutor(tmp_path)
+    action = Action(type=ActionType.READ_FILE, payload={"path": ".env"})
+
+    result = executor.execute(action)
+
+    assert result.ok is False
+    assert result.stderr == "denied_by_governance"
+    assert result.stdout == ""
+
+
+def test_requires_approval_for_git_write_without_executing(tmp_path):
+    executor = ToolExecutor(tmp_path)
+    action = Action(type=ActionType.WRITE_FILE, payload={"path": ".git/config", "content": "x"})
+
+    result = executor.execute(action)
+
+    assert result.ok is False
+    assert result.stderr == "approval_required"
+    assert not (tmp_path / ".git" / "config").exists()
+
+
+def test_requires_approval_for_high_risk_command_without_executing(tmp_path, monkeypatch):
+    executor = ToolExecutor(tmp_path)
+    action = Action(type=ActionType.RUN_COMMAND, payload={"command": "git push origin main"})
+
+    def fail_if_run(*args, **kwargs):
+        raise AssertionError("command execution should not be reached")
+
+    monkeypatch.setattr("harness.tools.subprocess.run", fail_if_run)
+
+    result = executor.execute(action)
+
+    assert result.ok is False
+    assert result.stderr == "approval_required"
+
+
+def test_run_checks_short_circuits_after_pytest_failure(tmp_path, monkeypatch):
+    executor = ToolExecutor(tmp_path)
+    action = Action(type=ActionType.RUN_CHECKS, payload={})
+    calls = []
+
+    def run_command(action, command):
+        calls.append(command)
+        return ToolResult(action_id=action.request_id, ok=False, exit_code=1)
+
+    monkeypatch.setattr(executor, "_run_command", run_command)
+
+    result = executor.execute(action)
+
+    assert result.ok is False
+    assert calls == ["pytest"]
