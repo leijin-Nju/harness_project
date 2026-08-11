@@ -68,7 +68,11 @@ class JsonMemoryStore:
     def _redact(value):
         if isinstance(value, str):
             value = re.sub(r"OPENAI_API_KEY=[^\s\"']+", "[redacted]", value)
-            return re.sub(r"sk-[A-Za-z0-9]{8,}", "[redacted]", value)
+            return re.sub(
+                r"sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]+|sk-[A-Za-z0-9]{8,}",
+                "[redacted]",
+                value,
+            )
         if isinstance(value, list):
             return [JsonMemoryStore._redact(item) for item in value]
         if isinstance(value, dict):

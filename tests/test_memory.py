@@ -65,6 +65,28 @@ def test_memory_file_never_contains_api_key_marker(tmp_path):
     assert "[redacted]" in json.dumps(raw)
 
 
+def test_memory_file_redacts_project_api_key_in_text(tmp_path):
+    store = JsonMemoryStore(tmp_path / "memory.json")
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
+    store.add(MemoryEntry(kind=MemoryKind.DECISION, text=secret))
+
+    raw = (tmp_path / "memory.json").read_text(encoding="utf-8")
+
+    assert secret not in raw
+    assert "[redacted]" in raw
+
+
+def test_memory_file_redacts_project_api_key_in_keywords(tmp_path):
+    store = JsonMemoryStore(tmp_path / "memory.json")
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
+    store.add(MemoryEntry(kind=MemoryKind.DECISION, text="key", keywords=[secret]))
+
+    raw = (tmp_path / "memory.json").read_text(encoding="utf-8")
+
+    assert secret not in raw
+    assert "[redacted]" in raw
+
+
 def test_mysql_adapter_is_explicitly_future_work():
     with pytest.raises(NotImplementedError, match="future adapter"):
         MySQLMemoryStore()
