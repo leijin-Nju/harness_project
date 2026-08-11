@@ -42,3 +42,11 @@ def test_cannot_resolve_non_pending_request_twice(tmp_path):
 
     with pytest.raises(ValueError, match="not pending"):
         machine.approve(request.id)
+
+
+def test_cannot_resolve_request_to_pending(tmp_path):
+    store = JsonApprovalStore(tmp_path / "approvals.json")
+    request = store.create(*make_review_action())
+
+    with pytest.raises(ValueError, match="pending"):
+        store.resolve(request.id, ApprovalStatus.PENDING)

@@ -41,6 +41,8 @@ class JsonApprovalStore:
         status: ApprovalStatus,
         note: str = "",
     ) -> ApprovalRequest:
+        if status == ApprovalStatus.PENDING:
+            raise ValueError("approval status cannot be pending")
         requests = self._load()
         for index, request in enumerate(requests):
             if request.id != request_id:
