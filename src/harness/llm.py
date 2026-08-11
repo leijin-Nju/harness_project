@@ -47,7 +47,10 @@ class OpenAICompatibleClient:
             json={
                 "model": self.model,
                 "messages": messages,
-                "response_format": {"type": "json_schema", "json_schema": action_schema},
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {"name": "action", "schema": action_schema},
+                },
             },
             timeout=self.timeout_seconds,
         )
