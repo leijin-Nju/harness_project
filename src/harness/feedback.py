@@ -74,4 +74,4 @@ def parse_command_failure(result: ToolResult) -> Feedback:
 
 
 def _output(result: ToolResult) -> str:
-    return result.stderr or result.stdout
+    return "\n".join(output for output in (result.stderr, result.stdout) if output)
