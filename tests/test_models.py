@@ -24,6 +24,12 @@ def test_risk_decision_defaults_to_not_requiring_approval_for_allow():
     assert decision.policy_version == "2026-08-10"
 
 
+def test_risk_decision_requires_approval_for_review():
+    decision = RiskDecision(level=RiskLevel.REVIEW, reasons=["publishes external state"])
+
+    assert decision.required_approval is True
+
+
 def test_approval_request_starts_pending():
     action = Action(type=ActionType.RUN_COMMAND, payload={"command": "git push"})
     decision = RiskDecision(level=RiskLevel.REVIEW, reasons=["publishes external state"])

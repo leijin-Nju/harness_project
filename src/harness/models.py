@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def _now() -> datetime:
@@ -62,6 +62,12 @@ class RiskDecision(BaseModel):
     reasons: list[str]
     required_approval: bool = False
     policy_version: str = "2026-08-10"
+
+    @model_validator(mode="after")
+    def require_approval_for_review(self) -> "RiskDecision":
+        if self.level == RiskLevel.REVIEW:
+            self.required_approval = True
+        return self
 
 
 class ToolResult(BaseModel):
