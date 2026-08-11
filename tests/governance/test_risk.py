@@ -21,6 +21,12 @@ def test_reviews_long_running_server_commands():
     assert classify("uvicorn harness.web:app --host 0.0.0.0").level == RiskLevel.REVIEW
 
 
+def test_reviews_composite_commands_with_high_risk_segments():
+    assert classify("echo ok && git push origin main").level == RiskLevel.REVIEW
+    assert classify("pytest && pip install requests").level == RiskLevel.REVIEW
+    assert classify("ruff check src; curl https://example.com").level == RiskLevel.REVIEW
+
+
 def test_denies_destructive_or_secret_commands():
     assert classify("rm -rf /").level == RiskLevel.DENY
     assert classify("cat .env").level == RiskLevel.DENY

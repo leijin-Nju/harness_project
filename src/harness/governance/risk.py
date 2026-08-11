@@ -1,9 +1,11 @@
+import re
 import shlex
 
 from harness.models import Action, ActionType, RiskDecision, RiskLevel
 
 
 class RiskClassifier:
+    _SHELL_OPERATOR_PATTERN = re.compile(r"&&|\|\||[;|]")
     _DENY_PATTERNS = (
         "drop database",
         "truncate table",
@@ -47,6 +49,12 @@ class RiskClassifier:
 
         if any(pattern in normalized for pattern in self._DENY_PATTERNS):
             return RiskDecision(level=RiskLevel.DENY, reasons=["command matches a deny pattern"])
+
+        if self._SHELL_OPERATOR_PATTERN.search(command):
+            return RiskDecision(
+                level=RiskLevel.REVIEW,
+                reasons=["composite shell command requires review"],
+            )
 
         if "--host 0.0.0.0" in normalized or self._starts_with(parts, self._REVIEW_PREFIXES):
             return RiskDecision(level=RiskLevel.REVIEW, reasons=["command requires review"])
