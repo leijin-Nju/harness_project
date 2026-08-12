@@ -6,9 +6,9 @@ unit-test:
   stage: test
   image: python:3.11
   script:
-    - pip install .[dev]
-    - pytest -q
-    - ruff check src tests scripts
+    - timeout 300 pip install .[dev]
+    - timeout 300 pytest -q
+    - timeout 300 ruff check src tests scripts
 
 docker-build:
   stage: build
@@ -16,4 +16,4 @@ docker-build:
   services:
     - docker:27-dind
   script:
-    - docker build -t coding-agent-harness:ci .
+    - timeout 600 docker build -t coding-agent-harness:ci .

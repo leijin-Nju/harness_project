@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 COPY scripts ./scripts
-RUN pip install --no-cache-dir .[dev]
+RUN timeout 300 pip install --no-cache-dir .[dev]
 
 RUN mkdir -p /workspace
 WORKDIR /workspace

@@ -5,14 +5,17 @@ def test_gitlab_ci_contains_required_unit_test_job():
     text = Path(".gitlab-ci.yml").read_text(encoding="utf-8")
 
     assert "unit-test:" in text
-    assert "pytest" in text
+    assert "timeout 300 pip install .[dev]" in text
+    assert "timeout 300 pytest -q" in text
+    assert "timeout 300 ruff check src tests scripts" in text
+    assert "timeout 600 docker build -t coding-agent-harness:ci ." in text
 
 
 def test_dockerfile_runs_harness_cli():
     text = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert "python:3.11" in text
-    assert "pip install" in text
+    assert "timeout 300 pip install --no-cache-dir .[dev]" in text
     assert "harness" in text
 
 
