@@ -38,6 +38,23 @@ def test_fails_closed_for_aliases_wrappers_and_unknown_commands():
         assert classify(command).level != RiskLevel.ALLOW, command
 
 
+def test_git_diff_allowlist_rejects_unsafe_options():
+    commands = [
+        "git diff --no-index ../outside-secret README.md",
+        "git diff --no-index .git-credentials README.md",
+        "git diff --output=../outside.patch HEAD~1 HEAD",
+        "git diff --ext-diff",
+    ]
+
+    for command in commands:
+        assert classify(command).level != RiskLevel.ALLOW, command
+
+
+def test_git_diff_allowlist_keeps_safe_validation_shapes():
+    assert classify("git diff --check").level == RiskLevel.ALLOW
+    assert classify("git diff --stat").level == RiskLevel.ALLOW
+
+
 def test_denies_non_string_command():
     assert classify(["pytest"]).level == RiskLevel.DENY
 

@@ -138,6 +138,24 @@ def test_loop_turns_invalid_actions_into_feedback_and_allows_correction(tmp_path
     assert "invalid_action" in persisted.read_text(encoding="utf-8")
 
 
+def test_loop_turns_missing_file_io_error_into_feedback_and_allows_correction(tmp_path):
+    (tmp_path / "fallback.txt").write_text("recovered", encoding="utf-8")
+    llm = MockLLMClient([
+        {"type": "read_file", "payload": {"path": "missing.txt"}},
+        {"type": "read_file", "payload": {"path": "fallback.txt"}},
+        {"type": "request_done", "payload": {"summary": "corrected"}},
+    ])
+
+    run = AgentLoop(HarnessConfig(workspace_root=tmp_path, max_iterations=3), llm).run(
+        "recover from missing read"
+    )
+
+    assert run.status == RunStatus.COMPLETED
+    assert run.observations[0].kind == "invalid_action"
+    assert "missing.txt" in str(run.observations[0].details)
+    assert run.observations[1].details["stdout"] == "recovered"
+
+
 class RecordingExecutor:
     def __init__(self):
         self.approved_actions = []
@@ -176,6 +194,21 @@ def test_resume_consumes_approved_action_once_without_second_request(tmp_path):
     assert [item.id for item in loop.approval_store.list()] == [request_id]
     assert len(executor.approved_actions) == 1
     assert executor.approved_actions[0].payload["command"] == "git push origin main"
+
+
+def test_resume_approved_action_is_not_executed_twice(tmp_path):
+    executor = RecordingExecutor()
+    loop, waiting = _waiting_run(tmp_path, executor)
+    request_id = waiting.pending_approval_id
+    ApprovalStateMachine(loop.approval_store).approve(request_id)
+
+    first = loop.resume(waiting.id)
+    second = loop.resume(waiting.id)
+
+    assert first.status == RunStatus.COMPLETED
+    assert second.status == RunStatus.COMPLETED
+    assert len(executor.approved_actions) == 1
+    assert loop.approval_store.get(request_id).status == ApprovalStatus.CONSUMED
 
 
 def test_resume_pending_approval_remains_waiting_without_new_request(tmp_path):

@@ -42,7 +42,6 @@ class RiskClassifier:
         ("python", "-m", "pytest"),
         ("ruff", "check"),
         ("git", "status"),
-        ("git", "diff"),
     )
 
     def classify(self, action: Action) -> RiskDecision:
@@ -83,6 +82,9 @@ class RiskClassifier:
         if self._is_safe_python_inline(parts):
             return RiskDecision(level=RiskLevel.ALLOW, reasons=["command is explicitly allowed"])
 
+        if self._is_safe_git_diff(parts):
+            return RiskDecision(level=RiskLevel.ALLOW, reasons=["command is explicitly allowed"])
+
         if self._starts_with(parts, self._ALLOW_PREFIXES):
             return RiskDecision(level=RiskLevel.ALLOW, reasons=["command is explicitly allowed"])
 
@@ -104,6 +106,12 @@ class RiskClassifier:
             re.fullmatch(r"print\((?:'[^']*'|\"[^\"]*\")\)", code)
             or re.fullmatch(r"__import__\((?:'time'|\"time\")\)\.sleep\(\d+(?:\.\d+)?\)", code)
         )
+
+    @staticmethod
+    def _is_safe_git_diff(parts: list[str]) -> bool:
+        if parts[:2] != ["git", "diff"]:
+            return False
+        return parts in (["git", "diff", "--check"], ["git", "diff", "--stat"])
 
     @staticmethod
     def _starts_with(parts: list[str], prefixes: tuple[tuple[str, ...], ...]) -> bool:

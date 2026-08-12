@@ -53,6 +53,8 @@ class AgentLoop:
         run = TaskRun.model_validate_json(run_path.read_text(encoding="utf-8"))
         if run.pending_approval_id is not None:
             return self._resume_approval(run)
+        if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.MAX_ITERATIONS}:
+            return run
         run.status = RunStatus.RUNNING
         run.stop_reason = None
         return self._run(run)
@@ -61,17 +63,21 @@ class AgentLoop:
         request = self.approval_store.get(run.pending_approval_id)
         if request.status == ApprovalStatus.PENDING:
             return self._finish(run, RunStatus.WAITING_FOR_APPROVAL, "approval_required")
+        if request.status == ApprovalStatus.CONSUMED:
+            run.pending_approval_id = None
+            return self._finish(run, RunStatus.COMPLETED, "approval_consumed")
         run.pending_approval_id = None
         if request.status in {ApprovalStatus.REJECTED, ApprovalStatus.EXPIRED}:
             reason = f"approval_{request.status.value}"
             return self._finish(run, RunStatus.FAILED, reason)
 
+        request = self.approval_store.consume(request.id)
         run.status = RunStatus.RUNNING
         run.stop_reason = None
         self._persist(run)
         try:
             result = self.tool_executor.execute_approved(request.action)
-        except (KeyError, TypeError, ValueError) as error:
+        except (KeyError, OSError, TypeError, ValueError) as error:
             run.observations.append(self._invalid_action_feedback(error))
         else:
             run.observations.append(tool_observation(result))
@@ -106,7 +112,7 @@ class AgentLoop:
 
                 result = self.tool_executor.execute(action)
                 run.observations.append(tool_observation(result))
-            except (KeyError, TypeError, ValueError) as error:
+            except (KeyError, OSError, TypeError, ValueError) as error:
                 run.observations.append(self._invalid_action_feedback(error))
             finally:
                 self._persist(run)

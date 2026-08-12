@@ -41,8 +41,8 @@ class JsonApprovalStore:
         status: ApprovalStatus,
         note: str = "",
     ) -> ApprovalRequest:
-        if status == ApprovalStatus.PENDING:
-            raise ValueError("approval status cannot be pending")
+        if status in {ApprovalStatus.PENDING, ApprovalStatus.CONSUMED}:
+            raise ValueError(f"approval status cannot be {status.value}")
         requests = self._load()
         for index, request in enumerate(requests):
             if request.id != request_id:
@@ -59,6 +59,27 @@ class JsonApprovalStore:
             requests[index] = resolved
             self._save(requests)
             return resolved
+        raise KeyError(request_id)
+
+    def consume(self, request_id: str, note: str = "consumed") -> ApprovalRequest:
+        requests = self._load()
+        for index, request in enumerate(requests):
+            if request.id != request_id:
+                continue
+            if request.status == ApprovalStatus.CONSUMED:
+                return request
+            if request.status != ApprovalStatus.APPROVED:
+                raise ValueError("approval request is not approved")
+            consumed = request.model_copy(
+                update={
+                    "status": ApprovalStatus.CONSUMED,
+                    "resolved_at": datetime.now(UTC),
+                    "resolution_note": note,
+                }
+            )
+            requests[index] = consumed
+            self._save(requests)
+            return consumed
         raise KeyError(request_id)
 
     def _load(self) -> list[ApprovalRequest]:

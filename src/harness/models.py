@@ -42,6 +42,7 @@ class ApprovalStatus(str, Enum):  # noqa: UP042
     APPROVED = "approved"
     REJECTED = "rejected"
     EXPIRED = "expired"
+    CONSUMED = "consumed"
 
 
 class MemoryKind(str, Enum):  # noqa: UP042

@@ -1,4 +1,4 @@
-from harness.feedback import parse_feedback
+from harness.feedback import parse_feedback, redact_sensitive
 from harness.models import ToolResult
 
 
@@ -88,3 +88,18 @@ def test_failure_feedback_includes_redacted_stdout_and_stderr():
     assert feedback.details["stdout"] == "partial result"
     assert "plain-secret-value" not in feedback.details["stderr"]
     assert "[redacted]" in feedback.details["stderr"]
+
+
+def test_redacts_quoted_secret_assignments_and_authorization_headers():
+    raw = (
+        '{"api_key": "plain-secret-value"}\n'
+        'API_TOKEN="plain-token-value"\n'
+        "Authorization: Bearer bearer-secret-value\n"
+    )
+
+    redacted = redact_sensitive(raw)
+
+    assert "plain-secret-value" not in redacted
+    assert "plain-token-value" not in redacted
+    assert "bearer-secret-value" not in redacted
+    assert redacted.count("[redacted]") == 3

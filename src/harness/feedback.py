@@ -3,15 +3,21 @@ import re
 from harness.models import Feedback, ToolResult
 
 RUFF_FAILURE_PATTERN = re.compile(r"^(.+?):(\d+):(\d+): ([A-Z]\d+) (.+)$", re.MULTILINE)
+SECRET_KEY_PATTERN = (
+    r"(?:api[_-]?key|api[_-]?token|client[_-]?secret|password|passwd|secret|token)"
+)
 SECRET_ASSIGNMENT_PATTERN = re.compile(
-    r"(?i)(?<![A-Za-z0-9])(?:api[_-]?key|api[_-]?token|authorization|client[_-]?secret|"
-    r"password|passwd|secret|token)"
-    r"\s*[:=]\s*[^\s,;\"']+"
+    rf"(?i)(?<![A-Za-z0-9])\"?{SECRET_KEY_PATTERN}\"?"
+    r"\s*[:=]\s*(?:\"[^\"]*\"|'[^']*'|[^\s,;\"']+)"
+)
+AUTHORIZATION_BEARER_PATTERN = re.compile(
+    r"(?i)authorization\s*:\s*bearer\s+(?:\"[^\"]*\"|'[^']*'|[^\s,;\"']+)"
 )
 OPENAI_KEY_PATTERN = re.compile(r"sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]+|sk-[A-Za-z0-9]{8,}")
 
 
 def redact_sensitive(value: str) -> str:
+    value = AUTHORIZATION_BEARER_PATTERN.sub("[redacted]", value)
     value = SECRET_ASSIGNMENT_PATTERN.sub("[redacted]", value)
     return OPENAI_KEY_PATTERN.sub("[redacted]", value)
 
