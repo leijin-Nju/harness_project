@@ -27,6 +27,15 @@ def test_add_and_search_memory_by_keyword(tmp_path):
     assert results[0].text == "Do not use SQLite"
 
 
+def test_list_returns_all_memory_entries(tmp_path):
+    store = JsonMemoryStore(tmp_path / "memory.json")
+    store.add(MemoryEntry(kind=MemoryKind.CONVENTION, text="Use JSON memory"))
+
+    entries = store.list()
+
+    assert [entry.text for entry in entries] == ["Use JSON memory"]
+
+
 def test_search_filters_by_kind(tmp_path):
     store = JsonMemoryStore(tmp_path / "memory.json")
     store.add(MemoryEntry(kind=MemoryKind.CONVENTION, text="Use JSON memory", keywords=["memory"]))

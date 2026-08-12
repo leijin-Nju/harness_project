@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import re
 import shutil
@@ -35,6 +37,9 @@ class JsonMemoryStore:
             encoding="utf-8",
         )
         return entry
+
+    def list(self) -> list[MemoryEntry]:
+        return self._load()
 
     def search(
         self,
