@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from harness.actions import build_action_schema, parse_action
 from harness.config import HarnessConfig
-from harness.feedback import parse_feedback
+from harness.feedback import redact_sensitive, tool_observation
 from harness.governance.approval import JsonApprovalStore
 from harness.governance.path_fence import PathFence
 from harness.governance.risk import RiskClassifier
@@ -12,6 +12,7 @@ from harness.memory import JsonMemoryStore, MemoryStore
 from harness.models import (
     Action,
     ActionType,
+    ApprovalStatus,
     Feedback,
     MemoryEntry,
     MemoryKind,
@@ -45,39 +46,70 @@ class AgentLoop:
 
     def run(self, task: str) -> TaskRun:
         run = TaskRun(workspace=str(self.config.workspace_root), task=task)
-        return self._run(run, [])
+        return self._run(run)
 
     def resume(self, run_id: str) -> TaskRun:
         run_path = self.config.paths()["runs_dir"] / f"{run_id}.json"
         run = TaskRun.model_validate_json(run_path.read_text(encoding="utf-8"))
+        if run.pending_approval_id is not None:
+            return self._resume_approval(run)
         run.status = RunStatus.RUNNING
         run.stop_reason = None
-        return self._run(run, [])
+        return self._run(run)
 
-    def _run(self, run: TaskRun, feedback: list[Feedback]) -> TaskRun:
+    def _resume_approval(self, run: TaskRun) -> TaskRun:
+        request = self.approval_store.get(run.pending_approval_id)
+        if request.status == ApprovalStatus.PENDING:
+            return self._finish(run, RunStatus.WAITING_FOR_APPROVAL, "approval_required")
+        run.pending_approval_id = None
+        if request.status in {ApprovalStatus.REJECTED, ApprovalStatus.EXPIRED}:
+            reason = f"approval_{request.status.value}"
+            return self._finish(run, RunStatus.FAILED, reason)
+
+        run.status = RunStatus.RUNNING
+        run.stop_reason = None
+        self._persist(run)
+        try:
+            result = self.tool_executor.execute_approved(request.action)
+        except (KeyError, TypeError, ValueError) as error:
+            run.observations.append(self._invalid_action_feedback(error))
+        else:
+            run.observations.append(tool_observation(result))
+        self._persist(run)
+        return self._run(run)
+
+    def _run(self, run: TaskRun) -> TaskRun:
         while run.iterations < self.config.max_iterations:
-            messages = self._messages(run.task, feedback)
+            messages = self._messages(run.task, run.observations)
             raw_action = self.llm.generate(messages, build_action_schema())
-            action = parse_action(raw_action)
             run.iterations += 1
-            decision = self._governance_decision(action)
-            if decision.level == RiskLevel.DENY:
-                feedback.append(self._governance_feedback(action, decision))
-                return self._finish(run, RunStatus.FAILED, "denied_by_governance")
-            if decision.level == RiskLevel.REVIEW:
-                self.approval_store.create(action, decision)
-                return self._finish(run, RunStatus.WAITING_FOR_APPROVAL, "approval_required")
-            if action.type == ActionType.REMEMBER:
-                self.memory_store.add(self._memory_entry(action, run.id))
-                self._persist(run)
-                continue
-            if action.type == ActionType.REQUEST_DONE:
-                return self._finish(run, RunStatus.COMPLETED, "request_done")
+            try:
+                action = parse_action(raw_action)
+                decision = self._governance_decision(action)
+                if decision.level == RiskLevel.DENY:
+                    run.observations.append(self._governance_feedback(action, decision))
+                    return self._finish(run, RunStatus.FAILED, "denied_by_governance")
+                if decision.level == RiskLevel.REVIEW:
+                    request = self.approval_store.create(action, decision)
+                    run.pending_approval_id = request.id
+                    return self._finish(
+                        run,
+                        RunStatus.WAITING_FOR_APPROVAL,
+                        "approval_required",
+                    )
+                if action.type == ActionType.REMEMBER:
+                    self.memory_store.add(self._memory_entry(action, run.id))
+                    self._persist(run)
+                    continue
+                if action.type == ActionType.REQUEST_DONE:
+                    return self._finish(run, RunStatus.COMPLETED, "request_done")
 
-            result = self.tool_executor.execute(action)
-            if not result.ok:
-                feedback.append(parse_feedback(result))
-            self._persist(run)
+                result = self.tool_executor.execute(action)
+                run.observations.append(tool_observation(result))
+            except (KeyError, TypeError, ValueError) as error:
+                run.observations.append(self._invalid_action_feedback(error))
+            finally:
+                self._persist(run)
 
         return self._finish(run, RunStatus.MAX_ITERATIONS, "max_iterations")
 
@@ -85,7 +117,7 @@ class AgentLoop:
         memories = self.memory_store.search(task)
         context = {
             "task": task,
-            "recent_feedback": [item.summary for item in feedback[-5:]],
+            "recent_observations": [item.model_dump(mode="json") for item in feedback[-5:]],
             "memory": [item.text for item in memories],
         }
         return [{"role": "user", "content": json.dumps(context, ensure_ascii=True)}]
@@ -107,6 +139,15 @@ class AgentLoop:
             summary="Action denied by governance.",
             details={"action": action.type.value, "reasons": decision.reasons},
             source=action.request_id,
+            severity="error",
+        )
+
+    @staticmethod
+    def _invalid_action_feedback(error: Exception) -> Feedback:
+        return Feedback(
+            kind="invalid_action",
+            summary="The proposed action was invalid and was not executed.",
+            details={"error": redact_sensitive(str(error))[:1000]},
             severity="error",
         )
 

@@ -72,3 +72,19 @@ def test_parse_timeout_as_command_failure():
 
     assert feedback.kind == "command_timeout"
     assert "timed out" in feedback.summary
+
+
+def test_failure_feedback_includes_redacted_stdout_and_stderr():
+    result = ToolResult(
+        action_id="act_cmd",
+        ok=False,
+        stdout="partial result",
+        stderr="API_TOKEN=plain-secret-value failed",
+        exit_code=2,
+    )
+
+    feedback = parse_feedback(result)
+
+    assert feedback.details["stdout"] == "partial result"
+    assert "plain-secret-value" not in feedback.details["stderr"]
+    assert "[redacted]" in feedback.details["stderr"]

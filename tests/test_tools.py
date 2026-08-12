@@ -51,6 +51,20 @@ def test_denies_sensitive_file_read_without_executing(tmp_path):
     assert result.stdout == ""
 
 
+def test_denies_environment_variant_before_reading_content(tmp_path):
+    secret = "DATABASE_PASSWORD=do-not-return"
+    (tmp_path / ".env.production").write_text(secret, encoding="utf-8")
+    executor = ToolExecutor(tmp_path)
+
+    result = executor.execute(
+        Action(type=ActionType.READ_FILE, payload={"path": ".env.production"})
+    )
+
+    assert result.ok is False
+    assert result.stderr == "denied_by_governance"
+    assert secret not in result.stdout
+
+
 def test_requires_approval_for_git_write_without_executing(tmp_path):
     executor = ToolExecutor(tmp_path)
     action = Action(type=ActionType.WRITE_FILE, payload={"path": ".git/config", "content": "x"})
@@ -75,6 +89,21 @@ def test_requires_approval_for_high_risk_command_without_executing(tmp_path, mon
 
     assert result.ok is False
     assert result.stderr == "approval_required"
+
+
+def test_denies_non_string_command_without_executing(tmp_path, monkeypatch):
+    executor = ToolExecutor(tmp_path)
+    action = Action(type=ActionType.RUN_COMMAND, payload={"command": ["pytest"]})
+
+    def fail_if_run(*args, **kwargs):
+        raise AssertionError("command execution should not be reached")
+
+    monkeypatch.setattr("harness.tools.subprocess.run", fail_if_run)
+
+    result = executor.execute(action)
+
+    assert result.ok is False
+    assert result.stderr == "denied_by_governance"
 
 
 def test_run_checks_short_circuits_after_pytest_failure(tmp_path, monkeypatch):

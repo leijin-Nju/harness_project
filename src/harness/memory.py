@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import re
 import shutil
 from pathlib import Path
 from typing import Protocol
 
+from harness.feedback import redact_sensitive
 from harness.models import MemoryEntry, MemoryKind
 
 
@@ -72,12 +72,7 @@ class JsonMemoryStore:
     @staticmethod
     def _redact(value):
         if isinstance(value, str):
-            value = re.sub(r"OPENAI_API_KEY=[^\s\"']+", "[redacted]", value)
-            return re.sub(
-                r"sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]+|sk-[A-Za-z0-9]{8,}",
-                "[redacted]",
-                value,
-            )
+            return redact_sensitive(value)
         if isinstance(value, list):
             return [JsonMemoryStore._redact(item) for item in value]
         if isinstance(value, dict):

@@ -126,6 +126,8 @@ class TaskRun(BaseModel):
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
     stop_reason: str | None = None
+    pending_approval_id: str | None = None
+    observations: list[Feedback] = Field(default_factory=list)
 
 
 class CredentialStatus(BaseModel):

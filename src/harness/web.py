@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from html import escape
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -21,14 +22,20 @@ def create_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def home() -> str:
-        return """
+        approvals = approval_store.list()
+        memories = memory_store.list()
+        runs = _load_runs(paths["runs_dir"])
+        latest_run = escape(runs[-1].task) if runs else "None"
+        return f"""
         <!doctype html>
         <html lang="en">
           <body>
-            <section><h1>Task Status</h1></section>
-            <section><h2>Approval Queue</h2></section>
+            <section>
+              <h1>Task Status</h1><p>Runs: {len(runs)}</p><p>Latest: {latest_run}</p>
+            </section>
+            <section><h2>Approval Queue</h2><p>Approvals: {len(approvals)}</p></section>
             <section><h2>Recent Feedback</h2></section>
-            <section><h2>Memory</h2></section>
+            <section><h2>Memory</h2><p>Memory entries: {len(memories)}</p></section>
           </body>
         </html>
         """
@@ -51,15 +58,19 @@ def create_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs", response_model=list[TaskRun])
     def list_runs() -> list[TaskRun]:
-        runs_dir = paths["runs_dir"]
-        if not runs_dir.exists():
-            return []
-        return [
-            TaskRun.model_validate_json(path.read_text(encoding="utf-8"))
-            for path in runs_dir.glob("*.json")
-        ]
+        return _load_runs(paths["runs_dir"])
 
     return app
+
+
+def _load_runs(runs_dir: Path) -> list[TaskRun]:
+    if not runs_dir.exists():
+        return []
+    runs = [
+        TaskRun.model_validate_json(path.read_text(encoding="utf-8"))
+        for path in runs_dir.glob("*.json")
+    ]
+    return sorted(runs, key=lambda run: run.updated_at)
 
 
 def _resolve_approval(
@@ -71,3 +82,6 @@ def _resolve_approval(
         raise HTTPException(status_code=404, detail="approval request not found") from error
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+app = create_app(Path.cwd())

@@ -2,6 +2,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from harness.actions import validate_action_payload
 from harness.governance.path_fence import PathFence
 from harness.governance.risk import RiskClassifier
 from harness.models import Action, ActionType, RiskLevel, ToolResult
@@ -18,13 +19,26 @@ class ToolExecutor:
         governance_result = self._check_governance(action)
         if governance_result is not None:
             return governance_result
+        validate_action_payload(action)
+        return self._execute(action)
+
+    def execute_approved(self, action: Action) -> ToolResult:
+        """Execute an action whose persisted approval has already been resolved."""
+        validate_action_payload(action)
+        return self._execute(action)
+
+    def _execute(self, action: Action) -> ToolResult:
         if action.type == ActionType.READ_FILE:
             path = self.path_fence.resolve(action.payload["path"])
-            return ToolResult(action_id=action.request_id, ok=True, stdout=path.read_text())
+            return ToolResult(
+                action_id=action.request_id,
+                ok=True,
+                stdout=path.read_text(encoding="utf-8"),
+            )
         if action.type == ActionType.WRITE_FILE:
             path = self.path_fence.resolve(action.payload["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(action.payload["content"])
+            path.write_text(action.payload["content"], encoding="utf-8")
             return ToolResult(action_id=action.request_id, ok=True)
         if action.type == ActionType.RUN_COMMAND:
             return self._run_command(action, action.payload["command"])

@@ -72,6 +72,9 @@ docker run --rm -p 8000:8000 -v "$PWD:/workspace" coding-agent-harness:local uvi
 Windows PowerShell 可将 `$PWD` 替换为 `${PWD}`，或直接使用工作区绝对路径。
 容器 WebUI 暴露于 `http://localhost:8000/`。
 
+当前环境未验证 Docker daemon 与 Buildx；上述命令由项目文件和 CI 配置覆盖，实际构建结果
+取决于运行机器可用的 Docker 服务。
+
 ## API Key Security
 
 mock LLM 测试与 `scripts/mock_demo.py` 不需要 API key。真实 LLM 模式优先通过

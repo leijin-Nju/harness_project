@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from harness.models import Action, ActionType
 
@@ -24,9 +25,23 @@ def parse_action(raw: str | dict) -> Action:
         raise ValueError(f"unknown action type: {raw['type']}") from exc
 
     try:
-        return Action(type=action_type, payload=raw["payload"])
+        action = Action(type=action_type, payload=raw["payload"])
     except (TypeError, ValueError) as exc:
         raise ValueError(f"invalid action: {exc}") from exc
+    validate_action_payload(action)
+    return action
+
+
+def validate_action_payload(action: Action) -> None:
+    """Validate the fields consumed by governance and tool dispatch."""
+    payload = action.payload
+    if action.type in {ActionType.READ_FILE, ActionType.WRITE_FILE}:
+        if not isinstance(payload.get("path"), (str, Path)):
+            raise ValueError(f"{action.type.value} requires a path")
+    if action.type == ActionType.WRITE_FILE and not isinstance(payload.get("content"), str):
+        raise ValueError("write_file requires string content")
+    if action.type == ActionType.RUN_COMMAND and not isinstance(payload.get("command"), str):
+        raise ValueError("run_command requires a string command")
 
 
 def build_action_schema() -> dict[str, object]:

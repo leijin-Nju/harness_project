@@ -5,6 +5,7 @@ from harness.models import (
     ApprovalStatus,
     RiskDecision,
     RiskLevel,
+    TaskRun,
     ToolResult,
 )
 
@@ -44,3 +45,10 @@ def test_tool_result_truncates_long_stdout():
 
     assert len(result.stdout) <= 4096
     assert result.stdout.endswith("[truncated]")
+
+
+def test_task_run_loads_legacy_state_without_approval_or_observations():
+    run = TaskRun.model_validate({"workspace": ".", "task": "legacy"})
+
+    assert run.pending_approval_id is None
+    assert run.observations == []

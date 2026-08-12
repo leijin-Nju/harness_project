@@ -2,7 +2,7 @@ from harness.governance.risk import RiskClassifier
 from harness.models import Action, ActionType, RiskLevel
 
 
-def classify(command: str):
+def classify(command):
     action = Action(type=ActionType.RUN_COMMAND, payload={"command": command})
     return RiskClassifier().classify(action)
 
@@ -12,9 +12,34 @@ def test_allows_pytest_and_ruff():
     assert classify("ruff check src tests").level == RiskLevel.ALLOW
 
 
+def test_allows_known_python_test_and_demo_invocations():
+    assert classify("python -m pytest -q").level == RiskLevel.ALLOW
+    assert classify("python scripts/mock_demo.py").level == RiskLevel.ALLOW
+
+
 def test_reviews_git_push_and_dependency_install():
     assert classify("git push origin main").level == RiskLevel.REVIEW
     assert classify("pip install requests").level == RiskLevel.REVIEW
+
+
+def test_fails_closed_for_aliases_wrappers_and_unknown_commands():
+    commands = [
+        "git -c alias.p=push p origin main",
+        "cmd /c git push origin main",
+        "powershell -Command git push origin main",
+        "bash -c 'git push origin main'",
+        "sh -c 'curl https://example.com'",
+        "curl https://example.com",
+        "wget https://example.com/archive.zip",
+        "echo harmless",
+    ]
+
+    for command in commands:
+        assert classify(command).level != RiskLevel.ALLOW, command
+
+
+def test_denies_non_string_command():
+    assert classify(["pytest"]).level == RiskLevel.DENY
 
 
 def test_reviews_long_running_server_commands():

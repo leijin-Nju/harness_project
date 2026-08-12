@@ -3,6 +3,34 @@ import re
 from harness.models import Feedback, ToolResult
 
 RUFF_FAILURE_PATTERN = re.compile(r"^(.+?):(\d+):(\d+): ([A-Z]\d+) (.+)$", re.MULTILINE)
+SECRET_ASSIGNMENT_PATTERN = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(?:api[_-]?key|api[_-]?token|authorization|client[_-]?secret|"
+    r"password|passwd|secret|token)"
+    r"\s*[:=]\s*[^\s,;\"']+"
+)
+OPENAI_KEY_PATTERN = re.compile(r"sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]+|sk-[A-Za-z0-9]{8,}")
+
+
+def redact_sensitive(value: str) -> str:
+    value = SECRET_ASSIGNMENT_PATTERN.sub("[redacted]", value)
+    return OPENAI_KEY_PATTERN.sub("[redacted]", value)
+
+
+def tool_observation(result: ToolResult) -> Feedback:
+    if not result.ok:
+        return parse_feedback(result)
+    return Feedback(
+        kind="tool_result",
+        summary="Tool action completed successfully.",
+        details={
+            "ok": True,
+            "exit_code": result.exit_code,
+            "stdout": redact_sensitive(result.stdout),
+            "stderr": redact_sensitive(result.stderr),
+            "timed_out": result.timed_out,
+        },
+        source=result.action_id,
+    )
 
 
 def parse_feedback(result: ToolResult) -> Feedback:
@@ -10,7 +38,7 @@ def parse_feedback(result: ToolResult) -> Feedback:
         return Feedback(
             kind="command_timeout",
             summary="Command timed out.",
-            details={"exit_code": result.exit_code},
+            details=_result_details(result),
             source=result.action_id,
             severity="error",
         )
@@ -34,7 +62,7 @@ def parse_pytest_failure(result: ToolResult) -> Feedback | None:
             return Feedback(
                 kind="pytest_failure",
                 summary=f"Pytest failure: {node_id}",
-                details={"exit_code": result.exit_code, "node_id": node_id},
+                details={**_result_details(result), "node_id": node_id},
                 source=result.action_id,
                 severity="error",
             )
@@ -51,7 +79,7 @@ def parse_ruff_failure(result: ToolResult) -> Feedback | None:
         kind="ruff_failure",
         summary=f"Ruff failure: {file_path}:{line}: {message}",
         details={
-            "exit_code": result.exit_code,
+            **_result_details(result),
             "file": file_path,
             "line": int(line),
             "column": int(column),
@@ -63,11 +91,10 @@ def parse_ruff_failure(result: ToolResult) -> Feedback | None:
 
 
 def parse_command_failure(result: ToolResult) -> Feedback:
-    output = _output(result)[:1000]
     return Feedback(
         kind="command_failure",
         summary=f"Command failed with exit code {result.exit_code}.",
-        details={"exit_code": result.exit_code, "output": output},
+        details=_result_details(result),
         source=result.action_id,
         severity="error",
     )
@@ -75,3 +102,12 @@ def parse_command_failure(result: ToolResult) -> Feedback:
 
 def _output(result: ToolResult) -> str:
     return "\n".join(output for output in (result.stderr, result.stdout) if output)
+
+
+def _result_details(result: ToolResult) -> dict[str, object]:
+    return {
+        "exit_code": result.exit_code,
+        "stdout": redact_sensitive(result.stdout),
+        "stderr": redact_sensitive(result.stderr),
+        "timed_out": result.timed_out,
+    }

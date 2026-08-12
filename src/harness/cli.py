@@ -119,5 +119,5 @@ def credentials_clear() -> None:
 def list_memory(workspace: WorkspaceOption) -> None:
     """List locally stored memory entries."""
     store = JsonMemoryStore(_config(workspace).paths()["memory"])
-    for entry in store._load():
+    for entry in store.list():
         typer.echo(f"{entry.id} {entry.kind.value} {entry.text}")

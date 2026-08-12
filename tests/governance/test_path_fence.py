@@ -65,3 +65,26 @@ def test_denies_case_insensitive_sensitive_file_name():
 
     assert decision.level == RiskLevel.DENY
     assert "sensitive credential file" in decision.reasons[0]
+
+
+def test_denies_common_credential_paths_case_insensitively():
+    fence = PathFence(Path.cwd())
+    sensitive_paths = [
+        ".env.production",
+        ".ENV.Staging",
+        ".git-credentials",
+        ".AWS/credentials",
+        ".azure/accessTokens.json",
+        ".config/gcloud/application_default_credentials.json",
+        ".kube/config",
+        ".docker/config.json",
+        "nested/.config/gcloud/configurations/config_default",
+        "config/CREDENTIALS.json",
+        ".netrc",
+        "config/service-account-prod.json",
+        "config/database_password.txt",
+    ]
+
+    for path in sensitive_paths:
+        action = Action(type=ActionType.READ_FILE, payload={"path": path})
+        assert fence.check_action(action).level == RiskLevel.DENY, path
