@@ -20,118 +20,118 @@
 
 优先级：Must
 
-作为项目开发者，我希望用 CLI 启动一次 coding agent 任务，以便让 harness 在受控工作区内完成小型代码修改。
+作为 项目开发者，我希望 用 CLI 启动一次 coding agent 任务，以便 让 harness 在受控工作区内完成小型代码修改。
 
-   验收标准：
-   1. 用户可以运行 `harness run "<task>" --workspace <path>` 启动任务。
-   2. harness 能完成上下文组装、LLM/mock LLM 调用、动作解析、工具执行、反馈回灌和停机判断。
-   3. mock LLM 模式不需要真实 API key，并可在单元测试中确定性运行完整主循环。
+验收标准：
+1. 用户可以运行 `harness run "<task>" --workspace <path>` 启动任务。
+2. harness 能完成上下文组装、LLM/mock LLM 调用、动作解析、工具执行、反馈回灌和停机判断。
+3. mock LLM 模式不需要真实 API key，并可在单元测试中确定性运行完整主循环。
 
 ### US-02 - 危险动作治理
 
 优先级：Must
 
-作为项目开发者，我希望危险动作不会被 agent 直接执行，以便避免删除文件、泄露凭据或越权修改工作区。
+作为 项目开发者，我希望 危险动作不会被 agent 直接执行，以便 避免删除文件、泄露凭据或越权修改工作区。
 
-   验收标准：
-   1. `rm -rf /`、删除数据库、读取 `.env`、写入 workspace 外路径等动作必须被拒绝。
-   2. `git push`、安装依赖、网络发布、长时间服务进程等动作必须进入人工审批。
-   3. `pytest`、`ruff`、只读文件读取、workspace 内安全写入等低风险动作可自动执行。
-   4. 单元测试能证明被拒绝或待审批动作没有被实际执行。
+验收标准：
+1. `rm -rf /`、删除数据库、读取 `.env`、写入 workspace 外路径等动作必须被拒绝。
+2. `git push`、安装依赖、网络发布、长时间服务进程等动作必须进入人工审批。
+3. `pytest`、`ruff`、只读文件读取、workspace 内安全写入等低风险动作可自动执行。
+4. 单元测试能证明被拒绝或待审批动作没有被实际执行。
 
 ### US-03 - 人工审批
 
 优先级：Must
 
-作为审批者，我希望通过 CLI 或 WebUI 查看并处理待审批动作，以便在人类确认后才允许中风险操作继续。
+作为 审批者，我希望 通过 CLI 或 WebUI 查看并处理待审批动作，以便 在人类确认后才允许中风险操作继续。
 
-   验收标准：
-   1. harness 会为中风险动作创建持久化审批请求，状态为 `pending`。
-   2. 用户可以批准、拒绝或修改后批准审批请求。
-   3. 主循环遇到待审批动作时进入 `waiting_for_approval`，恢复后继续执行。
-   4. 单元测试覆盖 `pending -> approved`、`pending -> rejected`、`pending -> expired` 状态转换。
+验收标准：
+1. harness 会为中风险动作创建持久化审批请求，状态为 `pending`。
+2. 用户可以批准、拒绝或修改后批准审批请求。
+3. 主循环遇到待审批动作时进入 `waiting_for_approval`，恢复后继续执行。
+4. 单元测试覆盖 `pending -> approved`、`pending -> rejected`、`pending -> expired` 状态转换。
 
 ### US-04 - 反馈闭环
 
 优先级：Must
 
-作为项目开发者，我希望测试和 lint 失败能被结构化回灌给 agent，以便 agent 根据客观反馈修正下一步动作。
+作为 项目开发者，我希望 测试和 lint 失败能被结构化回灌给 agent，以便 agent 根据客观反馈修正下一步动作。
 
-   验收标准：
-   1. `pytest` 失败会提取失败测试名、断言摘要和 traceback 关键片段。
-   2. `ruff` 失败会提取规则编号、文件、行号和消息。
-   3. 普通命令失败会记录命令、退出码、stderr 摘要和是否超时。
-   4. mock 演示能确定性复现“失败 -> 收到反馈 -> 修复 -> 验证通过”。
+验收标准：
+1. `pytest` 失败会提取失败测试名、断言摘要和 traceback 关键片段。
+2. `ruff` 失败会提取规则编号、文件、行号和消息。
+3. 普通命令失败会记录命令、退出码、stderr 摘要和是否超时。
+4. mock 演示能确定性复现“失败 -> 收到反馈 -> 修复 -> 验证通过”。
 
 ### US-05 - 确定性机制演示
 
 优先级：Must
 
-作为课程评审者，我希望无需真实 LLM 就能运行核心机制演示，以便验证项目机制不是只靠提示词完成。
+作为 课程评审者，我希望 无需真实 LLM 就能运行核心机制演示，以便 验证项目机制不是只靠提示词完成。
 
-   验收标准：
-   1. `make test` 或等价命令能运行 mock LLM 单元测试。
-   2. 演示覆盖危险动作拦截、反馈闭环自修复、HITL 审批状态机。
-   3. 演示不依赖网络、不依赖真实 API key、不修改 workspace 外文件。
-   4. CI 中 `unit-test` job 能执行这些测试。
+验收标准：
+1. `make test` 或等价命令能运行 mock LLM 单元测试。
+2. 演示覆盖危险动作拦截、反馈闭环自修复、HITL 审批状态机。
+3. 演示不依赖网络、不依赖真实 API key、不修改 workspace 外文件。
+4. CI 中 `unit-test` job 能执行这些测试。
 
 ### US-06 - 项目记忆
 
 优先级：Should
 
-作为项目开发者，我希望 harness 记住项目约定和历史决策，以便后续任务能按需获得相关上下文。
+作为 项目开发者，我希望 harness 记住项目约定和历史决策，以便 后续任务能按需获得相关上下文。
 
-   验收标准：
-   1. 默认使用本地 JSON 存储记忆，不使用 SQLite。
-   2. 记忆至少包含项目约定、用户决策、历史失败摘要三类。
-   3. 任务开始时按关键词、类型和最近性检索有限条记忆，而不是全量注入。
-   4. 可预留 MySQL adapter 接口，但 MVP 不要求部署 MySQL。
+验收标准：
+1. 默认使用本地 JSON 存储记忆，不使用 SQLite。
+2. 记忆至少包含项目约定、用户决策、历史失败摘要三类。
+3. 任务开始时按关键词、类型和最近性检索有限条记忆，而不是全量注入。
+4. 可预留 MySQL adapter 接口，但 MVP 不要求部署 MySQL。
 
 ### US-07 - 安全凭据配置
 
 优先级：Should
 
-作为新用户，我希望安全配置 OpenAI-compatible API key，以便真实 LLM 模式能运行且凭据不泄露。
+作为 新用户，我希望 安全配置 OpenAI-compatible API key，以便 真实 LLM 模式能运行且凭据不泄露。
 
-   验收标准：
-   1. CLI 支持隐藏输入 API key，并优先写入系统 keyring。
-   2. 支持环境变量作为 key 来源，并在 README 说明 `.env` 明文风险。
-   3. 查看凭据状态时只显示存在性、来源和更新时间，不回显明文。
-   4. 日志和错误信息不会打印 API key。
+验收标准：
+1. CLI 支持隐藏输入 API key，并优先写入系统 keyring。
+2. 支持环境变量作为 key 来源，并在 README 说明 `.env` 明文风险。
+3. 查看凭据状态时只显示存在性、来源和更新时间，不回显明文。
+4. 日志和错误信息不会打印 API key。
 
 ### US-08 - Docker 分发
 
 优先级：Should
 
-作为部署者，我希望用 Docker 启动 CLI/WebUI，以便在新机器上复现项目运行环境。
+作为 部署者，我希望 用 Docker 启动 CLI/WebUI，以便 在新机器上复现项目运行环境。
 
-   验收标准：
-   1. README 提供 `docker build` 和 `docker run` 命令。
-   2. 容器支持挂载 workspace，并暴露 WebUI 端口。
-   3. 无真实 API key 时仍可运行 mock demo。
-   4. CI 能构建 Docker 镜像。
+验收标准：
+1. README 提供 `docker build` 和 `docker run` 命令。
+2. 容器支持挂载 workspace，并暴露 WebUI 端口。
+3. 无真实 API key 时仍可运行 mock demo。
+4. CI 能构建 Docker 镜像。
 
 ### US-09 - 最小 WebUI
 
 优先级：Could
 
-作为项目开发者，我希望通过最小 WebUI 查看任务状态、反馈摘要、审批队列和记忆条目，以便更直观看到 harness 运行过程。
+作为 项目开发者，我希望 通过最小 WebUI 查看任务状态、反馈摘要、审批队列和记忆条目，以便 更直观看到 harness 运行过程。
 
-   验收标准：
-   1. WebUI 至少提供任务状态页、审批列表页、反馈摘要页和记忆列表页。
-   2. 用户可在 WebUI 批准或拒绝审批请求。
-   3. WebUI 不承担核心 agent loop；核心机制必须仍可由 CLI 和单元测试验证。
+验收标准：
+1. WebUI 至少提供任务状态页、审批列表页、反馈摘要页和记忆列表页。
+2. 用户可在 WebUI 批准或拒绝审批请求。
+3. WebUI 不承担核心 agent loop；核心机制必须仍可由 CLI 和单元测试验证。
 
 ### US-10 - 强隔离容器沙箱
 
 优先级：Won't
 
-作为高级用户，我希望所有命令都在强隔离容器沙箱中执行，以便获得更强的系统级隔离。
+作为 高级用户，我希望 所有命令都在强隔离容器沙箱中执行，以便 获得更强的系统级隔离。
 
-    验收标准：
-    1. MVP 不实现完整容器沙箱执行器。
-    2. SPEC 将其列为未来增强。
-    3. MVP 通过命令风险分级、路径围栏、超时和 HITL 审批降低风险。
+验收标准：
+1. MVP 不实现完整容器沙箱执行器。
+2. SPEC 将其列为未来增强。
+3. MVP 通过命令风险分级、路径围栏、超时和 HITL 审批降低风险。
 
 ## 3. 领域与机制设计
 
@@ -446,7 +446,7 @@ README 必须包含：
 7. API key 安全配置方式。
 8. 已知限制和安全边界。
 
-CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包含 Docker build job。最终交付需要提供可访问 WebUI URL，并说明部署架构。
+CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包含 Docker build job。MVP 最终交付提供本地 WebUI 访问地址和启动说明；公网部署与可远程访问 URL 属于未来部署项。
 
 ## 11. 非功能需求
 
@@ -496,12 +496,12 @@ CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包�
 - `SPEC_PROCESS.md`：记录 brainstorming、planning 和冷启动试运行过程。
 - `AGENT_LOG.md`：记录技能使用、subagent 输出、人工干预和关键 commit。
 - `README.md`：项目简介、安装、运行、分发、key 安全配置、目录结构、安全边界。
-- `REFLECTION.md`：1500-2500 字反思报告。
+- `REFLECTION.md`：仅包含课程指定章节标题的反思占位模板，最终反思正文不由 agent 生成。
 - 源代码：自有 harness 内核、CLI、WebUI、治理、反馈、记忆、凭据模块。
 - 测试：mock LLM 单元测试和机制演示。
 - CI：`.gitlab-ci.yml`，包含 `unit-test` job 和 Docker build。
 - 分发产物：Dockerfile 和镜像构建说明。
-- 部署信息：可访问 WebUI URL 和部署说明。
+- 部署信息：本地 WebUI 访问地址和启动说明；公网部署作为未来工作。
 
 ## 15. 风险与未决问题
 

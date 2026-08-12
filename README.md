@@ -4,8 +4,8 @@ Coding Agent Harness 是一个自有核心循环的 Python coding agent harness�
 为主要入口，通过结构化动作、工作区路径围栏、确定性命令风险分级、HITL 审批和
 客观反馈回灌，在受控范围内执行软件开发任务。最小 WebUI 仅负责状态展示和审批。
 
-项目要求 Python 3.11+。默认记忆和审批状态使用工作区内的本地 JSON 文件，不使用
-SQLite；MySQL 仅保留为未来 adapter，不是 MVP 依赖。核心测试使用 mock LLM，
+项目要求 Python 3.11+。默认记忆和审批状态使用工作区内的本地 JSON 文件，不使用 SQLite；
+MySQL 仅保留为未来 adapter，不是 MVP 依赖。核心测试使用 mock LLM，
 无需网络或真实 API key。Docker 是首选分发路径。
 
 ## Installation

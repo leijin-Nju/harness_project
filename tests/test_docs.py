@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 REQUIRED_README_SECTIONS = [
@@ -7,6 +8,17 @@ REQUIRED_README_SECTIONS = [
     "## API Key Security",
     "## Directory Structure",
     "## Security Boundaries",
+]
+
+EXPECTED_REFLECTION_HEADINGS = [
+    "# Reflection",
+    "## Superpowers Skills",
+    "## TDD In AI Collaboration",
+    "## Subagent Workflow",
+    "## SPEC And PLAN Quality",
+    "## Prompt And Context Strategy",
+    "## Credential And Distribution Lessons",
+    "## Critique Of Superpowers",
 ]
 
 
@@ -23,11 +35,11 @@ def test_required_course_documents_exist():
         assert Path(name).exists(), f"{name} is missing"
 
 
-def test_readme_contains_required_sections():
-    text = Path("README.md").read_text(encoding="utf-8")
+def test_readme_contains_exact_required_headings():
+    lines = Path("README.md").read_text(encoding="utf-8").splitlines()
 
     for section in REQUIRED_README_SECTIONS:
-        assert section in text
+        assert lines.count(section) == 1
 
 
 def test_plan_mentions_tdd_and_mock_llm():
@@ -35,3 +47,61 @@ def test_plan_mentions_tdd_and_mock_llm():
 
     assert "TDD" in text
     assert "mock LLM" in text
+
+
+def test_spec_user_stories_follow_required_format_and_priority():
+    text = Path("SPEC.md").read_text(encoding="utf-8")
+    story_pattern = re.compile(r"^作为 .+，我希望 .+，以便 .+。$", re.MULTILINE)
+    priority_pattern = re.compile(
+        r"^优先级：(Must|Should|Could|Won't)$",
+        re.MULTILINE,
+    )
+
+    assert len(story_pattern.findall(text)) == 10
+    assert len(priority_pattern.findall(text)) == 10
+    assert len(re.findall(r"^验收标准：$", text, re.MULTILINE)) == 10
+    assert not re.search(r"^[ \t]+验收标准：$", text, re.MULTILINE)
+
+
+def test_docs_describe_json_memory_without_sqlite_dependency():
+    spec = Path("SPEC.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for text in [spec, readme]:
+        assert "本地 JSON" in text
+        assert "不使用 SQLite" in text
+        assert re.search(r"MySQL.{0,40}(未来|预留|不是 MVP 依赖)", text)
+
+
+def test_reflection_is_heading_only_template():
+    lines = [
+        line
+        for line in Path("REFLECTION.md").read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+
+    assert lines == EXPECTED_REFLECTION_HEADINGS
+
+
+def test_spec_uses_local_webui_and_accurate_docker_verification_wording():
+    text = Path("SPEC.md").read_text(encoding="utf-8")
+
+    assert "本地 WebUI 访问地址和启动说明" in text
+    assert "可访问 WebUI URL" not in text
+    assert "Docker 构建验证通过" not in text
+    assert "本地环境不能访问 Docker daemon" in text
+
+
+def test_course_documents_have_required_structure():
+    required_headings = {
+        "SPEC.md": ["## 1. 问题陈述", "## 2. 用户故事", "## 13. 验收标准"],
+        "PLAN.md": ["### Task 1:", "### Task 15:"],
+        "SPEC_PROCESS.md": ["## Brainstorming Key Nodes", "## Cold-Start Trial Record"],
+        "AGENT_LOG.md": ["| Time | Task | Superpowers Skill |"],
+    }
+
+    for name, markers in required_headings.items():
+        text = Path(name).read_text(encoding="utf-8")
+        assert len(text.strip()) > 100
+        for marker in markers:
+            assert marker in text
