@@ -23,7 +23,8 @@ def test_dockerfile_runs_harness_cli():
     text = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert "python:3.11" in text
-    assert "timeout 300 pip install --no-cache-dir .[dev]" in text
+    assert "python -m pip install --upgrade pip" in text
+    assert 'python -m pip install --retries 10 --timeout 100 --no-cache-dir ".[dev]"' in text
     assert "harness" in text
 
 
