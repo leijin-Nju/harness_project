@@ -100,6 +100,7 @@ docs/superpowers/          已确认设计与实施计划来源
 .harness/                  运行时 JSON 状态、审批、记忆和日志（不提交）
 Dockerfile                 首选容器分发定义
 .gitlab-ci.yml             单元测试、lint 与镜像构建流水线
+.github/workflows/ci.yml   GitHub Actions 测试、lint 与镜像构建流水线
 ```
 
 ## Security Boundaries
@@ -118,3 +119,12 @@ pytest -q
 ruff check src tests scripts
 python scripts/mock_demo.py
 ```
+
+## Submission Notes
+
+提交前需要在课程提交入口或 PR/README 中补充以下外部证据：
+
+- CI/CD pass record: 最后一次 GitLab CI 或 GitHub Actions 通过记录链接。
+- Public Docker registry image: 推送后的公开 Docker/OCI 镜像地址。
+- Public WebUI URL: 截止前可访问的 WebUI 部署地址。
+- Reflection ownership note: `REFLECTION.md` 正文需由学生本人撰写；AI 仅可用于结构检查或润色并标注。

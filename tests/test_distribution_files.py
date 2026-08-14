@@ -11,6 +11,14 @@ def test_gitlab_ci_contains_required_unit_test_job():
     assert "timeout 600 docker build -t coding-agent-harness:ci ." in text
 
 
+def test_github_actions_runs_tests_lint_and_docker_build():
+    text = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "pytest -q" in text
+    assert "ruff check src tests scripts" in text
+    assert "docker build -t coding-agent-harness:ci ." in text
+
+
 def test_dockerfile_runs_harness_cli():
     text = Path("Dockerfile").read_text(encoding="utf-8")
 

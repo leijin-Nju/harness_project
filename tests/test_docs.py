@@ -92,6 +92,15 @@ def test_spec_uses_local_webui_and_accurate_docker_verification_wording():
     assert "本地环境不能访问 Docker daemon" in text
 
 
+def test_readme_lists_external_submission_evidence_to_fill():
+    text = Path("README.md").read_text(encoding="utf-8")
+
+    assert "## Submission Notes" in text
+    assert "CI/CD pass record" in text
+    assert "Public Docker registry image" in text
+    assert "Public WebUI URL" in text
+
+
 def test_course_documents_have_required_structure():
     required_headings = {
         "SPEC.md": ["## 1. 问题陈述", "## 2. 用户故事", "## 13. 验收标准"],
