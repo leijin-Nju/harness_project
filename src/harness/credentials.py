@@ -1,6 +1,7 @@
 import os
 
 import keyring
+from keyring.errors import KeyringError
 
 from harness.models import CredentialStatus
 
@@ -15,8 +16,14 @@ class CredentialManager:
     def __init__(self, service_name: str = "coding-agent-harness") -> None:
         self.service_name = service_name
 
+    def _get_keyring_api_key(self, provider: str) -> str | None:
+        try:
+            return keyring.get_password(self.service_name, provider)
+        except KeyringError:
+            return None
+
     def get_api_key(self, provider: str = "openai") -> str | None:
-        return keyring.get_password(self.service_name, provider) or os.getenv("OPENAI_API_KEY")
+        return self._get_keyring_api_key(provider) or os.getenv("OPENAI_API_KEY")
 
     def set_api_key(self, api_key: str, provider: str = "openai") -> None:
         keyring.set_password(self.service_name, provider, api_key)
@@ -25,7 +32,7 @@ class CredentialManager:
         keyring.delete_password(self.service_name, provider)
 
     def status(self, provider: str = "openai") -> CredentialStatus:
-        api_key = keyring.get_password(self.service_name, provider)
+        api_key = self._get_keyring_api_key(provider)
         if api_key:
             return CredentialStatus(
                 provider=provider,

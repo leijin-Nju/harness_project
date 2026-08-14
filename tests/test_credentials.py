@@ -1,3 +1,5 @@
+from keyring.errors import NoKeyringError
+
 from harness.credentials import CredentialManager, mask_secret
 
 
@@ -30,4 +32,19 @@ def test_credential_manager_uses_keyring(monkeypatch):
     assert manager.get_api_key() == "sk-abcdefghijklmnopqrstuvwxyz"
     status = manager.status()
     assert status.exists is True
+    assert status.masked_preview == "sk-a...wxyz"
+
+
+def test_credential_manager_falls_back_to_env_when_keyring_is_unavailable(monkeypatch):
+    def unavailable_keyring(service, username):
+        raise NoKeyringError("no keyring backend")
+
+    monkeypatch.setattr("harness.credentials.keyring.get_password", unavailable_keyring)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-abcdefghijklmnopqrstuvwxyz")
+    manager = CredentialManager(service_name="test-harness")
+
+    assert manager.get_api_key() == "sk-abcdefghijklmnopqrstuvwxyz"
+    status = manager.status()
+    assert status.exists is True
+    assert status.source == "env"
     assert status.masked_preview == "sk-a...wxyz"
