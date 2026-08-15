@@ -8,17 +8,19 @@ REQUIRED_README_SECTIONS = [
     "## API Key Security",
     "## Directory Structure",
     "## Security Boundaries",
+    "## Project Documents",
+    "## CI/CD And Submission Evidence",
 ]
 
-EXPECTED_REFLECTION_HEADINGS = [
-    "# Reflection",
-    "## Superpowers Skills",
-    "## TDD In AI Collaboration",
-    "## Subagent Workflow",
-    "## SPEC And PLAN Quality",
-    "## Prompt And Context Strategy",
-    "## Credential And Distribution Lessons",
-    "## Critique Of Superpowers",
+REQUIRED_REFLECTION_TOPICS = [
+    "Superpowers",
+    "TDD",
+    "Subagent-driven",
+    "SPEC",
+    "PLAN",
+    "prompt/context",
+    "凭据",
+    "分发",
 ]
 
 
@@ -73,32 +75,34 @@ def test_docs_describe_json_memory_without_sqlite_dependency():
         assert re.search(r"MySQL.{0,40}(未来|预留|不是 MVP 依赖)", text)
 
 
-def test_reflection_is_heading_only_template():
-    lines = [
-        line
-        for line in Path("REFLECTION.md").read_text(encoding="utf-8").splitlines()
-        if line
-    ]
+def test_reflection_contains_final_course_topics():
+    text = Path("REFLECTION.md").read_text(encoding="utf-8")
 
-    assert lines == EXPECTED_REFLECTION_HEADINGS
+    assert len(text) > 1500
+    assert "# Reflection" not in text
+    for topic in REQUIRED_REFLECTION_TOPICS:
+        assert topic in text
 
 
 def test_spec_uses_local_webui_and_accurate_docker_verification_wording():
     text = Path("SPEC.md").read_text(encoding="utf-8")
 
-    assert "本地 WebUI 访问地址和启动说明" in text
+    assert "本地 WebUI 启动说明" in text
+    assert "http://120.27.140.93/" in text
     assert "可访问 WebUI URL" not in text
     assert "Docker 构建验证通过" not in text
-    assert "本地环境不能访问 Docker daemon" in text
+    assert "服务器 `docker load` 部署" in text
 
 
-def test_readme_lists_external_submission_evidence_to_fill():
+def test_readme_lists_final_submission_evidence():
     text = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## Submission Notes" in text
-    assert "CI/CD pass record" in text
-    assert "Public Docker registry image" in text
-    assert "Public WebUI URL" in text
+    assert "## CI/CD And Submission Evidence" in text
+    assert "https://github.com/leijin-Nju/harness_project" in text
+    assert "http://120.27.140.93/" in text
+    assert "最后一次 CI/CD pass 记录链接" in text
+    assert "docker save" in text
+    assert "docker load" in text
 
 
 def test_course_documents_have_required_structure():

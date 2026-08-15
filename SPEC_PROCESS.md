@@ -62,6 +62,17 @@
 Task 15 的前一次模型调度因容量失败且没有产生代码；本次直接从 brief、设计文档、PLAN 和
 Git 历史恢复上下文。工作区中未跟踪的课程源文件未被修改或纳入提交。
 
+## Final Documentation Pass
+
+2026-08-15 进行非代码交付文档补全，重点是把 README 中的提交前占位信息改为可核查的交付信息，
+并将临时部署笔记整理为正式 `DEPLOYMENT.md`。本轮明确：
+
+- 公开仓库为 `https://github.com/leijin-Nju/harness_project`。
+- 公开 WebUI 地址为 `http://120.27.140.93/`。
+- Docker 首选分发形态保留；registry 不可用时使用 `docker save` / `docker load` 作为可复现部署路径。
+- `coding-agent-harness-5af067b.tar`、测试缓存目录、运行时 `.harness/` 状态和聊天日志不纳入 Git 提交。
+- `REFLECTION.md` 已从占位模板变为正文交付物，最终内容由学生负责。
+
 ## Reflection On Brainstorming
 
 brainstorming 的主要价值是把“做一个 coding agent”拆成可验收的机制与边界，并提前锁定

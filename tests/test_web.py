@@ -24,9 +24,9 @@ def test_home_page_contains_status_sections(tmp_path):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Task Status" in response.text
-    assert "Approval Queue" in response.text
-    assert "Memory" in response.text
+    assert "任务状态" in response.text
+    assert "审批队列" in response.text
+    assert "记忆" in response.text
 
 
 def test_home_page_reflects_local_state_counts(tmp_path):
@@ -45,9 +45,65 @@ def test_home_page_reflects_local_state_counts(tmp_path):
 
     response = TestClient(create_app(tmp_path)).get("/")
 
-    assert "Runs: 1" in response.text
-    assert "Approvals: 1" in response.text
-    assert "Memory entries: 1" in response.text
+    assert "运行次数：1" in response.text
+    assert "审批请求：1" in response.text
+    assert "记忆条目：1" in response.text
+
+
+def test_home_page_exposes_operable_dashboard_controls(tmp_path):
+    state_dir = tmp_path / ".harness"
+    request = JsonApprovalStore(state_dir / "approvals.json").create(
+        Action(type=ActionType.RUN_COMMAND, payload={"command": "git push"}),
+        RiskDecision(level=RiskLevel.REVIEW, reasons=["publishes external state"]),
+    )
+    JsonMemoryStore(state_dir / "memory.json").add(
+        MemoryEntry(kind=MemoryKind.DECISION, text="Keep approvals human-reviewed")
+    )
+    runs_dir = state_dir / "runs"
+    runs_dir.mkdir(parents=True)
+    run = TaskRun(workspace=str(tmp_path), task="inspect web ui", iterations=2)
+    (runs_dir / f"{run.id}.json").write_text(run.model_dump_json(), encoding="utf-8")
+
+    response = TestClient(create_app(tmp_path)).get("/")
+
+    assert response.status_code == 200
+    assert 'data-api-url="/api/runs"' in response.text
+    assert 'data-api-url="/api/approvals"' in response.text
+    assert 'data-api-url="/api/memory"' in response.text
+    assert 'id="refresh-dashboard"' in response.text
+    assert 'id="recent-runs"' in response.text
+    assert 'id="approval-list"' in response.text
+    assert 'id="memory-list"' in response.text
+    assert f'data-approval-id="{request.id}"' in response.text
+    assert "批准" in response.text
+    assert "拒绝" in response.text
+
+
+def test_home_page_uses_refined_workbench_layout(tmp_path):
+    response = TestClient(create_app(tmp_path)).get("/")
+
+    assert response.status_code == 200
+    assert 'class="app-frame"' in response.text
+    assert 'class="workspace-meta"' in response.text
+    assert 'class="workbench-layout"' in response.text
+    assert 'class="primary-column"' in response.text
+    assert 'class="side-rail"' in response.text
+    assert 'id="approval-feedback"' in response.text
+
+
+def test_home_page_presents_chinese_user_interface(tmp_path):
+    response = TestClient(create_app(tmp_path)).get("/")
+
+    assert response.status_code == 200
+    assert '<html lang="zh-CN">' in response.text
+    assert "<title>编码智能体控制台</title>" in response.text
+    assert "任务状态" in response.text
+    assert "刷新" in response.text
+    assert "运行记录" in response.text
+    assert "审批队列" in response.text
+    assert "记忆" in response.text
+    assert "近期反馈" in response.text
+    assert "暂无审批请求。" in response.text
 
 
 def test_approval_api_lists_and_approves(tmp_path):

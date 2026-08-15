@@ -1,15 +1,7 @@
-# Reflection
-
-## Superpowers Skills
-
-## TDD In AI Collaboration
-
-## Subagent Workflow
-
-## SPEC And PLAN Quality
-
-## Prompt And Context Strategy
-
-## Credential And Distribution Lessons
-
-## Critique Of Superpowers
+本项目的核心目标不是做一个简单的调用大模型 API 的脚本，而是实现一个具有自有核心循环的 Coding Agent Harness。整个过程让我真正意识到，AI 辅助开发的难点并不只在“让模型写代码”，而在于如何把模糊需求转化为可验证、可交付、可部署的工程过程。在这个过程中，Superpowers 方法论发挥了很大作用，尤其是 brainstorming、writing-plans、systematic-debugging 和 verification-before-completion。Brainstorming 帮助我把课程要求拆成用户故事，并用 MoSCoW 方法判断哪些能力必须完成，例如核心 agent loop、治理、安全边界、HITL、反馈修复、JSON memory、CLI/WebUI/API、CI 和 Docker 分发。Writing-plans 则把这些目标拆成可执行任务，让实现不至于被“先写一点看看”的冲动带偏。Systematic-debugging 在后期尤其重要，例如 GitHub Actions 因 Linux 环境没有 keyring 后端而失败，以及 Docker build 因 pip 依赖解析回溯导致 cryptography 构建失败时，它强迫我先复现、读错误、定位根因，而不是猜测式修改。Verification-before-completion 则让我在每次说“完成”之前都必须拿出 pytest、ruff、mock demo、Docker build 或 HTTP smoke test 的证据。
+不过，Superpowers 并不是每一步都同样有效。有些地方确实存在“形式大于实质”的感觉，例如很小的文档修改也要求先做 brainstorming，流程会显得偏重。TDD 对核心业务逻辑是放大器，因为它能约束 AI 不要凭感觉改代码。例如 keyring 不可用时退回环境变量的修复，是先写回归测试再实现，测试准确保护了 CI 场景。但对 Dockerfile、CI YAML、部署文档这类配置文件，TDD 有时会退化成字符串检查，价值不如真实构建和运行验证高。因此我认为 TDD 在 AI 协作下既不是纯阻碍，也不是无条件放大器；它对可观察行为清晰的代码非常有效，对配置和文档则需要更务实地裁剪。
+Subagent-driven 工作流也让我看到智能体自主性的边界。它适合边界清晰、输入输出明确的短任务，例如审查某个模块、实现某个 store、验证某个测试失败原因。但如果 SPEC 或 PLAN 不清楚，subagent 很容易按通用经验自行补全，进而偏离项目真实要求。最优的 task 颗粒度应该是“一个可测试交付物”：任务足够小，相关文件能在一个上下文里读完；又足够完整，可以用单独的测试或命令验收。过大的任务会让智能体自己做太多假设，过小的任务又会让调度和审查成本超过收益。
+SPEC 和 PLAN 的质量直接影响实现质量。一个具体案例是 memory 设计。如果规约只写“实现 memory 功能”，AI 或 subagent 很可能自然选择 SQLite，因为这是常见的本地持久化方案。但课程和项目要求明确指出 harness.memory 不应使用 SQLite，可以使用本地 JSON，MySQL 仅作为未来 adapter。正是因为后续把这个约束写入需求和计划，最终实现才没有走错方向。这说明 AI 并不会自动理解课程语境，它会优先调用常见工程模式；只有明确的硬约束、文件边界、接口定义和验收命令，才能把模型拉回正确路径。
+我最有效的 prompt/context 策略，是同时提供角色、约束和验收标准。比如明确告诉 AI：这是 coding agent harness，不是普通 Web 应用；CLI 是主要执行入口，WebUI 只做状态展示和审批；不能使用 SQLite；测试必须使用 mock LLM；完成标准包括 pytest、ruff、mock demo、CI pass 和 Docker build。这种策略有效，是因为它减少了 AI 的自由补全空间，把“看起来合理”替换成“符合本项目要求”。同时，SPEC、PLAN、AGENT_LOG、DEPLOYMENT.md 等文档也形成了持续上下文，使后续任务不必反复重新解释项目方向。
+凭据与分发这两条工程要求，也迫使我想清楚很多原本容易忽略的问题。凭据方面，不能把 API key 写入源码、日志、mock 脚本或提交记录；credentials status 不能显示明文；keyring 在本地可用，但在 CI/Linux headless 环境可能不可用，因此必须支持环境变量 fallback。分发方面，Dockerfile 不能只在本机看起来正确，必须能在干净环境里构建；GHCR 登录失败后，还需要准备 docker save / docker load 的替代部署路径；服务器只开放 80 端口时，还要把容器端口映射改为 -p 80:8000。这些问题把项目从“能跑”推进到了“能交付”。
+如果重做，我会更早把 Docker build、镜像导出、服务器部署和回滚纳入计划，而不是在接近交付时再集中处理。我也会减少对配置文件的脆弱字符串测试，更多使用真实构建、真实运行和 smoke test。对 Superpowers 方法论的批判是：它假设需求可以被写清楚，任务可以被拆分，测试可以覆盖主要风险，人类会持续审查 AI 输出。在本项目里，这些假设大体成立，因为模块边界清楚、核心逻辑可测试、部署也有明确命令。但对外部环境强依赖的问题，如 GitHub 权限、GHCR token、服务器端口和 Docker daemon 状态，流程只能帮助发现和记录，不能自动消除不确定性。最终我最大的收获是，Superpowers 的价值不在于制造流程感，而在于把 AI 协作从“生成代码”推进为“有规约、有验证、有证据链的工程实践”；但它仍然需要人的判断来决定何时严格执行，何时务实裁剪。

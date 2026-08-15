@@ -446,7 +446,7 @@ README 必须包含：
 7. API key 安全配置方式。
 8. 已知限制和安全边界。
 
-CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包含 Docker build job。MVP 最终交付提供本地 WebUI 访问地址和启动说明；公网部署与可远程访问 URL 属于未来部署项。
+CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包含 Docker build job。GitHub Actions workflow 也用于 push 后自动运行测试、lint 与镜像构建。MVP 最终交付提供本地 WebUI 启动说明，并记录课程部署使用的公网 WebUI 地址 `http://120.27.140.93/`；该地址通过 Docker 镜像归档传输和服务器 `docker load` 部署获得。
 
 ## 11. 非功能需求
 
@@ -496,12 +496,12 @@ CI 使用 `.gitlab-ci.yml`，必须包含名为 `unit-test` 的 job；同时包�
 - `SPEC_PROCESS.md`：记录 brainstorming、planning 和冷启动试运行过程。
 - `AGENT_LOG.md`：记录技能使用、subagent 输出、人工干预和关键 commit。
 - `README.md`：项目简介、安装、运行、分发、key 安全配置、目录结构、安全边界。
-- `REFLECTION.md`：仅包含课程指定章节标题的反思占位模板，最终反思正文不由 agent 生成。
+- `REFLECTION.md`：1500-2500 字反思报告，正文由学生本人负责；AI 仅可辅助结构检查或轻量润色。
 - 源代码：自有 harness 内核、CLI、WebUI、治理、反馈、记忆、凭据模块。
 - 测试：mock LLM 单元测试和机制演示。
 - CI：`.gitlab-ci.yml`，包含 `unit-test` job 和 Docker build。
 - 分发产物：Dockerfile 和镜像构建说明。
-- 部署信息：本地 WebUI 访问地址和启动说明；公网部署作为未来工作。
+- 部署信息：本地 WebUI 访问地址、服务器部署说明、公开 WebUI URL 和 Docker 镜像传输方式。
 
 ## 15. 风险与未决问题
 

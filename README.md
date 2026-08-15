@@ -75,6 +75,20 @@ Windows PowerShell 可将 `$PWD` 替换为 `${PWD}`，或直接使用工作区�
 当前环境未验证 Docker daemon 与 Buildx；上述命令由项目文件和 CI 配置覆盖，实际构建结果
 取决于运行机器可用的 Docker 服务。
 
+本次课程交付使用的部署镜像 tag 为 `coding-agent-harness:5af067b`。如果公开 registry
+登录或推送不可用，可按 [DEPLOYMENT.md](DEPLOYMENT.md) 使用 `docker save` /
+`docker load` 传输同一镜像归档；该方式不会把 `coding-agent-harness-5af067b.tar`
+提交到 Git。
+
+公开 WebUI 地址：
+
+```text
+http://120.27.140.93/
+```
+
+服务器只开放 80 端口，因此部署时使用 `-p 80:8000` 将宿主机 80 端口映射到容器内
+FastAPI 服务端口 8000。
+
 ## API Key Security
 
 mock LLM 测试与 `scripts/mock_demo.py` 不需要 API key。真实 LLM 模式优先通过
@@ -103,6 +117,19 @@ Dockerfile                 首选容器分发定义
 .github/workflows/ci.yml   GitHub Actions 测试、lint 与镜像构建流水线
 ```
 
+## Project Documents
+
+根目录非代码交付物对应课程要求如下：
+
+```text
+SPEC.md           设计文档：问题、用户故事、机制设计、架构、数据模型、安全与分发
+PLAN.md           实施计划：TDD task、文件范围、验证步骤、依赖和并行点
+SPEC_PROCESS.md   规约过程：brainstorming、关键迭代、冷启动试运行和修订记录
+AGENT_LOG.md      实现日志：技能使用、subagent 结果、人工干预、验证与交付整理
+REFLECTION.md     1500-2500 字反思报告，正文由学生本人负责
+DEPLOYMENT.md     Docker 镜像传输、服务器部署、验证、重启、更新和回滚说明
+```
+
 ## Security Boundaries
 
 - 文件动作必须留在解析后的 workspace 内；敏感凭据文件会被拒绝，`.git/` 写入需审批。
@@ -120,11 +147,40 @@ ruff check src tests scripts
 python scripts/mock_demo.py
 ```
 
-## Submission Notes
+## CI/CD And Submission Evidence
 
-提交前需要在课程提交入口或 PR/README 中补充以下外部证据：
+公开仓库：
 
-- CI/CD pass record: 最后一次 GitLab CI 或 GitHub Actions 通过记录链接。
-- Public Docker registry image: 推送后的公开 Docker/OCI 镜像地址。
-- Public WebUI URL: 截止前可访问的 WebUI 部署地址。
-- Reflection ownership note: `REFLECTION.md` 正文需由学生本人撰写；AI 仅可用于结构检查或润色并标注。
+```text
+https://github.com/leijin-Nju/harness_project
+```
+
+CI 配置：
+
+```text
+.github/workflows/ci.yml
+.gitlab-ci.yml
+```
+
+`.gitlab-ci.yml` 包含课程要求的 `unit-test` job；GitHub Actions workflow 同样运行测试、
+lint 和 Docker build。提交前应在课程系统中附上最后一次通过的 CI/CD 运行页面链接。
+
+最终交付物清单：
+
+- `SPEC.md`、`PLAN.md`、`SPEC_PROCESS.md`
+- 完整源代码、mock LLM 单元测试和 `scripts/mock_demo.py` 机制演示
+- `README.md`、`AGENT_LOG.md`、`REFLECTION.md`、`DEPLOYMENT.md`
+- Dockerfile、CI 配置和部署说明
+- 公开 WebUI URL：`http://120.27.140.93/`
+- 最后一次 CI/CD pass 记录链接
+- 若 registry 可用，公开 Docker/OCI 镜像地址；若不可用，使用
+  `DEPLOYMENT.md` 中记录的 `docker save` / `docker load` 镜像归档部署流程
+
+提交时不要加入以下本地产物：
+
+- `.harness/` 运行状态、审批、记忆和日志
+- `.pytest*`、`pytest-cache-*`、`.ruff_cache/`、临时测试目录
+- `coding-agent-harness-5af067b.tar` 镜像归档
+- 任何 `.env`、API key、token、服务器私钥或真实凭据
+
+`REFLECTION.md` 正文需由学生本人撰写；AI 仅可用于结构检查、错别字修正或轻量润色，并由学生对最终内容负责。
