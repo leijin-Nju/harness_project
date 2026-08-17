@@ -155,6 +155,12 @@ python scripts/mock_demo.py
 https://github.com/leijin-Nju/harness_project
 ```
 
+Release 页面：
+
+```text
+https://github.com/leijin-Nju/harness_project/releases/tag/1.0
+```
+
 CI 配置：
 
 ```text
@@ -172,6 +178,7 @@ lint 和 Docker build。提交前应在课程系统中附上最后一次通过�
 - `README.md`、`AGENT_LOG.md`、`REFLECTION.md`、`DEPLOYMENT.md`
 - Dockerfile、CI 配置和部署说明
 - 公开 WebUI URL：`http://120.27.140.93/`
+- 项目 Release 链接：`https://github.com/leijin-Nju/harness_project/releases/tag/1.0`
 - 最后一次 CI/CD pass 记录链接
 - 若 registry 可用，公开 Docker/OCI 镜像地址；若不可用，使用
   `DEPLOYMENT.md` 中记录的 `docker save` / `docker load` 镜像归档部署流程
